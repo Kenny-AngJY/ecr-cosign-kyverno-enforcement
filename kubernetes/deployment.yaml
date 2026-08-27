@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: python
+  name: python
+spec:
+  selector:
+    matchLabels:
+      app: python
+  template:
+    metadata:
+      labels:
+        app: python
+    spec:
+      containers:
+      - image: 717240872783.dkr.ecr.ap-southeast-1.amazonaws.com/simple-python-app:1.0.0
+        imagePullPolicy: IfNotPresent
+        name: python-app
