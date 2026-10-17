@@ -80,3 +80,15 @@ variable "ecr_repository_name" {
   type    = string
   default = "simple-python-app"
 }
+
+
+variable "deploy_kyverno_via_helm_provider" {
+  description = "Install the Kyverno Helm chart with Terraform instead of running helm manually."
+  type        = bool
+  default     = false
+}
+
+variable "kyverno_chart_version" {
+  type    = string
+  default = "3.9.0"
+}
