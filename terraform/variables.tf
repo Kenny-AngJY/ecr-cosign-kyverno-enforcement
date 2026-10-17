@@ -13,24 +13,40 @@ variable "vpc_id" {
   description = "If create_vpc is false, define your own vpc_id."
   type        = string
   default     = ""
+
+  validation {
+    condition     = var.create_vpc || var.vpc_id != ""
+    error_message = "vpc_id must be set when create_vpc is false."
+  }
 }
 
 variable "list_of_subnet_ids" {
   description = "If create_vpc is false, define your own subnet_ids."
   type        = list(string)
   default     = []
+
+  validation {
+    condition     = var.create_vpc || length(var.list_of_subnet_ids) > 0
+    error_message = "list_of_subnet_ids must be set when create_vpc is false."
+  }
 }
 
 variable "use_eks_pod_identity_agent" {
-  description = "Use IAM Roles for Service Account (IRSA) by default."
+  description = "Use EKS pod identity instead of IAM Roles for Service Account (IRSA)."
   type        = bool
-  default     = false
+  default     = true
+
+  validation {
+    condition     = !(var.use_eks_pod_identity_agent && var.use_fargate_profile)
+    error_message = "EKS Pod Identity is not supported on Fargate. Set use_eks_pod_identity_agent = false when use_fargate_profile = true."
+  }
 }
 
 variable "create_eks_worker_nodes_in_private_subnet" {
   type    = bool
   default = true
 }
+
 variable "use_fargate_profile" {
   description = <<EOF
   Defaults to false to use node group. 

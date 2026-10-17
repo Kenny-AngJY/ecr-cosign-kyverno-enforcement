@@ -3,7 +3,7 @@ module "eks" {
   version                                = "21.29.0" # Published October 8, 2026
   create                                 = true
   name                                   = local.cluster_name
-  kubernetes_version                     = 1.37
+  kubernetes_version                     = "1.37"
   authentication_mode                    = "API"
   endpoint_private_access                = true # Indicates whether or not the Amazon EKS private API server endpoint is enabled
   endpoint_public_access                 = true # Indicates whether or not the Amazon EKS public API server endpoint is enabled
@@ -15,13 +15,15 @@ module "eks" {
   encryption_config = {}
 
   compute_config = {
-    enabled = var.enable_auto_mode
-    # node_pools = ["general-purpose"] # Comment this line out when auto mode is disabled
+    enabled    = var.enable_auto_mode
+    node_pools = var.enable_auto_mode ? ["general-purpose", "system"] : null
   }
 
   addons = var.enable_auto_mode ? {} : {
     coredns = {
       addon_version = "v1.14.7-eksbuild.11"
+      # CoreDNS defaults to EC2 nodes; without this it stays Pending on a Fargate-only cluster.
+      configuration_values = var.use_fargate_profile ? jsonencode({ computeType = "Fargate" }) : null
     }
     # kube-proxy pod (that is deployed as a daemonset) shares the same IPv4 address as the node it's on.
     kube-proxy = {
@@ -56,13 +58,13 @@ module "eks" {
   A list of subnet IDs where the nodes/node groups will be provisioned.
   If control_plane_subnet_ids is not provided, the EKS cluster control plane (ENIs) will be provisioned in these subnets
   ----------------------------------------------------------------------------------- */
-  subnet_ids = var.create_vpc ? ((var.use_fargate_profile || var.create_eks_worker_nodes_in_private_subnet) ? module.vpc[0].list_of_private_subnet_ids : module.vpc[0].list_of_public_subnet_ids) : var.list_of_subnet_ids
+  subnet_ids = (var.use_fargate_profile || var.create_eks_worker_nodes_in_private_subnet) ? local.private_subnet_ids : local.public_subnet_ids
 
   /* -----------------------------------------------------------------------------------
   A list of subnet IDs where the EKS Managed ENIs will be provisioned.
   Used for expanding the pool of subnets used by nodes/node groups without replacing the EKS control plane
   ----------------------------------------------------------------------------------- */
-  control_plane_subnet_ids = var.create_vpc ? (var.create_eks_worker_nodes_in_private_subnet ? module.vpc[0].list_of_private_subnet_ids : module.vpc[0].list_of_public_subnet_ids) : var.list_of_subnet_ids
+  control_plane_subnet_ids = var.create_eks_worker_nodes_in_private_subnet ? local.private_subnet_ids : local.public_subnet_ids
 
   # self_managed_node_groups = {
   #   self_managed_NG1 = {
@@ -95,7 +97,7 @@ module "eks" {
       name            = "kube-system"
       create_iam_role = true # pod_execution_role
       # AWS Fargate can only use private subnets with NAT gateway to deploy your pods.
-      subnet_ids = module.vpc[0].list_of_private_subnet_ids
+      subnet_ids = local.private_subnet_ids
       selectors = [
         # If you omit labels, it matches ALL pods in the namespace
         {
@@ -111,7 +113,7 @@ module "eks" {
       name            = "dev"
       create_iam_role = true # pod_execution_role
       # AWS Fargate can only use private subnets with NAT gateway to deploy your pods.
-      subnet_ids = module.vpc[0].list_of_private_subnet_ids
+      subnet_ids = local.private_subnet_ids
       selectors = [
         # Match pods in this namespace with these labels
         {
@@ -119,6 +121,24 @@ module "eks" {
           labels = {
             "app.kubernetes.io/instance" = "dev-services"
           }
+        }
+      ]
+      tags = {
+        Terraform = "true"
+      }
+    }
+    # Kyverno and the demo workload need Fargate capacity too, otherwise their pods stay Pending.
+    profile_3 = {
+      create          = var.use_fargate_profile
+      name            = "kyverno-demo"
+      create_iam_role = true # pod_execution_role
+      subnet_ids      = local.private_subnet_ids
+      selectors = [
+        {
+          namespace = "kyverno"
+        },
+        {
+          namespace = "default"
         }
       ]
       tags = {
@@ -149,7 +169,8 @@ Enables support for Amazon EBS volumes using the Container Storage Interface (CS
 It allows you to dynamically provision and manage EBS-backed PersistentVolumes in Kubernetes.
 */
 resource "aws_eks_addon" "aws_ebs_csi_driver" {
-  count                       = var.create_aws_ebs_csi_driver_add_on ? 1 : 0
+  # EKS Auto Mode has built-in EBS storage, so the add-on and its IAM role are skipped.
+  count                       = var.create_aws_ebs_csi_driver_add_on && !var.enable_auto_mode ? 1 : 0
   cluster_name                = module.eks.cluster_name
   addon_name                  = "aws-ebs-csi-driver"
   addon_version               = "v1.63.0-eksbuild.1"

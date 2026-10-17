@@ -7,6 +7,9 @@ locals {
     terraform   = true
     description = "Demo Kyverno on AWS EKS"
   }
+
+  public_subnet_ids  = var.create_vpc ? module.vpc[0].list_of_public_subnet_ids : var.list_of_subnet_ids
+  private_subnet_ids = var.create_vpc ? module.vpc[0].list_of_private_subnet_ids : var.list_of_subnet_ids
 }
 
 module "vpc" {
@@ -24,9 +27,9 @@ module "vpc" {
 }
 
 output "list_of_public_subnet_ids" {
-  value = module.vpc[0].list_of_public_subnet_ids
+  value = one(module.vpc[*].list_of_public_subnet_ids)
 }
 
 output "list_of_private_subnet_ids" {
-  value = module.vpc[0].list_of_private_subnet_ids
+  value = one(module.vpc[*].list_of_private_subnet_ids)
 }
