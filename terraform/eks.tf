@@ -1,9 +1,9 @@
 module "eks" {
   source                                 = "terraform-aws-modules/eks/aws"
-  version                                = "21.24.2" # Published August 7, 2026
+  version                                = "21.29.0" # Published October 8, 2026
   create                                 = true
   name                                   = local.cluster_name
-  kubernetes_version                     = 1.36
+  kubernetes_version                     = 1.37
   authentication_mode                    = "API"
   endpoint_private_access                = true # Indicates whether or not the Amazon EKS private API server endpoint is enabled
   endpoint_public_access                 = true # Indicates whether or not the Amazon EKS public API server endpoint is enabled
@@ -21,18 +21,18 @@ module "eks" {
 
   addons = var.enable_auto_mode ? {} : {
     coredns = {
-      addon_version = "v1.14.3-eksbuild.14"
+      addon_version = "v1.14.7-eksbuild.11"
     }
     # kube-proxy pod (that is deployed as a daemonset) shares the same IPv4 address as the node it's on.
     kube-proxy = {
       before_compute = true
-      addon_version  = "v1.36.0-eksbuild.17"
+      addon_version  = "v1.37.0-eksbuild.22"
     }
     # Network interface will show all IPs used in the subnet
     # VPC CNI add-on will create the "aws-node" daemonset in the kube-system namespace.
     vpc-cni = {
       before_compute           = true
-      addon_version            = "v1.23.0-eksbuild.1" # major-version.minor-version.patch-version-eksbuild.build-number.
+      addon_version            = "v1.23.2-eksbuild.3" # major-version.minor-version.patch-version-eksbuild.build-number.
       service_account_role_arn = var.use_eks_pod_identity_agent ? null : aws_iam_role.eks_vpc_cni_role[0].arn
       configuration_values = jsonencode(
         {
@@ -332,6 +332,6 @@ resource "aws_eks_addon" "aws_pod_identity" {
   count                       = var.use_eks_pod_identity_agent && !var.enable_auto_mode ? 1 : 0
   cluster_name                = module.eks.cluster_name
   addon_name                  = "eks-pod-identity-agent"
-  addon_version               = "v1.4.0-eksbuild.1"
+  addon_version               = "v1.4.0-eksbuild.4"
   resolve_conflicts_on_update = "OVERWRITE" # NONE | OVERWRITE | PRESERVE
 }
