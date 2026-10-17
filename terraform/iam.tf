@@ -3,7 +3,7 @@ VPC CNI
 ----------------------------------------------------------------------------------- */
 resource "aws_iam_role" "eks_vpc_cni_role" {
   count       = var.enable_auto_mode ? 0 : 1
-  name        = "vpc-cni-irsa"
+  name        = "${local.name}-vpc-cni"
   description = "IAM role for VPC-CNI add-on"
 
   assume_role_policy = var.use_eks_pod_identity_agent ? jsonencode({
@@ -70,7 +70,7 @@ EKS Amazon EBS CSI add-on
 ----------------------------------------------------------------------------------- */
 resource "aws_iam_role" "amazon_EBS_CSI_iam_role" {
   count       = var.create_aws_ebs_csi_driver_add_on && !var.enable_auto_mode ? 1 : 0
-  name        = "amazon-ebs-csi-irsa"
+  name        = "${local.name}-ebs-csi"
   description = "IAM role for Amazon EBS CSI driver add-on"
 
   assume_role_policy = jsonencode({
@@ -116,8 +116,8 @@ annotate an IAM role to the fluent bit's serviceaccount.
 */
 resource "aws_iam_role" "CloudWatchAgent" {
   count       = var.create_amazon_cloudwatch_observability_add_on ? 1 : 0
-  name        = "CloudWatchAgent_EKS"
-  description = "One for each AWS account"
+  name        = "${local.name}-cloudwatch-agent"
+  description = "IAM role for the Amazon CloudWatch Observability add-on"
 
   assume_role_policy = jsonencode({
     "Version" : "2012-10-17"
@@ -151,7 +151,7 @@ resource "aws_iam_role_policy_attachment" "aws_cloudwatch-observability-add-on-I
 IAM role for Kyverno admission controller
 ----------------------------------------------------------------------------------- */
 resource "aws_iam_role" "kyverno" {
-  name        = "kyverno-admission-controller"
+  name        = "${local.name}-admission-controller"
   description = "IAM role for Kyverno admission controller"
 
   assume_role_policy = var.use_eks_pod_identity_agent ? jsonencode({
@@ -200,7 +200,7 @@ resource "aws_iam_role" "kyverno" {
 }
 
 resource "aws_iam_policy" "kyverno" {
-  name        = "kyverno-admission-controller-policy"
+  name        = "${local.name}-admission-controller-policy"
   path        = "/"
   description = "Policy for Kyverno admission controller"
 
