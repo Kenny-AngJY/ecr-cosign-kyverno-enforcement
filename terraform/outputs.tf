@@ -20,7 +20,10 @@ output "eks_worker_node_subnet" {
   value       = (var.use_fargate_profile || var.create_eks_worker_nodes_in_private_subnet) ? "Private" : "Public"
 }
 
-# output "eks_managed_node_groups" {
-#   description = "Map of attribute maps for all EKS managed node groups created."
-#   value       = module.eks.eks_managed_node_groups
-# }
+output "list_of_public_subnet_ids" {
+  value = one(module.vpc[*].list_of_public_subnet_ids)
+}
+
+output "list_of_private_subnet_ids" {
+  value = one(module.vpc[*].list_of_private_subnet_ids)
+}

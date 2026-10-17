@@ -174,6 +174,8 @@ helm upgrade --install kyverno kyverno/kyverno \
   --set-string "admissionController.rbac.serviceAccount.annotations.eks\.amazonaws\.com/role-arn=${KYVERNO_ROLE_ARN}"
 ```
 
+Alternatively, set `deploy_kyverno_via_helm_provider = true` and Terraform installs the chart during `terraform apply`. It uses the version in `kyverno_chart_version` and picks Pod Identity or the IRSA annotation automatically, so you can skip the `helm` commands above. Because Terraform creates the credentials before the chart, the restart step below is not needed either.
+
 Create the Kubernetes Secret that stores the Cosign public key:
 
 ```bash

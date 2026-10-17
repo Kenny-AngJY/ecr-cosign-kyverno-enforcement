@@ -346,7 +346,6 @@ resource "aws_eks_addon" "amazon_cloudwatch_observability" {
     }
   })
   */
-  depends_on = [module.eks]
 }
 
 resource "aws_eks_addon" "aws_pod_identity" {

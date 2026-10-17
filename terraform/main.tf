@@ -25,11 +25,3 @@ module "vpc" {
 
   default_tags = local.default_tags
 }
-
-output "list_of_public_subnet_ids" {
-  value = one(module.vpc[*].list_of_public_subnet_ids)
-}
-
-output "list_of_private_subnet_ids" {
-  value = one(module.vpc[*].list_of_private_subnet_ids)
-}

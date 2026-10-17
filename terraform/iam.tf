@@ -21,7 +21,7 @@ resource "aws_iam_role" "eks_vpc_cni_role" {
         ],
         "Condition" : {
           "StringEquals" : {
-            "aws:SourceAccount" : data.aws_caller_identity.current.id
+            "aws:SourceAccount" : data.aws_caller_identity.current.account_id
           },
           "ArnEquals" : {
             "aws:SourceArn" : module.eks.cluster_arn
@@ -169,7 +169,7 @@ resource "aws_iam_role" "kyverno" {
         ],
         "Condition" : {
           "StringEquals" : {
-            "aws:SourceAccount" : data.aws_caller_identity.current.id
+            "aws:SourceAccount" : data.aws_caller_identity.current.account_id
           },
           "ArnEquals" : {
             "aws:SourceArn" : module.eks.cluster_arn
@@ -223,7 +223,7 @@ resource "aws_iam_policy" "kyverno" {
           "ecr:BatchGetImage",
           "ecr:GetDownloadUrlForLayer"
         ]
-        Resource = "arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.id}:repository/${var.ecr_repository_name}"
+        Resource = "arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:repository/${var.ecr_repository_name}"
       }
     ]
   })
