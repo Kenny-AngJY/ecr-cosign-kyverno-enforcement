@@ -147,16 +147,25 @@ cosign verify \
 
 ## Install Kyverno
 
-Install Kyverno with Helm and annotate the admission controller service account with the IAM role created by Terraform.
+Terraform creates the `kyverno-admission-controller` IAM role. By default (`use_eks_pod_identity_agent = true`), it also creates an EKS Pod Identity association for the `kyverno/kyverno-admission-controller` service account, so no service account annotation is needed:
+
+```bash
+helm repo add kyverno https://kyverno.github.io/kyverno/
+helm repo update
+
+helm upgrade --install kyverno kyverno/kyverno \
+  --version 3.9.0 \
+  --namespace kyverno \
+  --create-namespace
+```
+
+If you set `use_eks_pod_identity_agent = false` (required when `use_fargate_profile = true`, because Pod Identity is not supported on Fargate), use IRSA instead and annotate the service account with the role ARN:
 
 ```bash
 KYVERNO_ROLE_ARN=$(aws iam get-role \
   --role-name kyverno-admission-controller \
   --query 'Role.Arn' \
   --output text)
-
-helm repo add kyverno https://kyverno.github.io/kyverno/
-helm repo update
 
 helm upgrade --install kyverno kyverno/kyverno \
   --version 3.9.0 \
@@ -173,7 +182,7 @@ kubectl create secret generic cosign-public-key \
   --from-file=cosign.pub=./cosign.pub
 ```
 
-If you install Kyverno before adding the annotation, restart the admission controller after updating the service account:
+If Kyverno was installed before its credentials were in place (the Pod Identity association or the IRSA annotation), restart the admission controller so it picks them up:
 
 ```bash
 kubectl rollout restart deploy kyverno-admission-controller -n kyverno
@@ -191,7 +200,7 @@ The policy:
 
 - Matches images from the configured ECR repository.
 - Loads `cosign.pub` from the `kyverno/cosign-public-key` Secret.
-- Uses Kyverno's Amazon credentials provider so the admission controller can authenticate to ECR.
+- Uses Kyverno's Amazon credentials provider so the admission controller can authenticate to ECR (via EKS Pod Identity or IRSA).
 - Denies workloads when the image does not have a valid Cosign signature.
 
 ## Test Enforcement

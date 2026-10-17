@@ -69,8 +69,8 @@ spec:
           )
         )
 
-  # Use the Kyverno admission controller's IRSA credentials
-  # to authenticate against ECR.
+  # Use the Kyverno admission controller's AWS credentials
+  # (EKS Pod Identity or IRSA) to authenticate against ECR.
   credentials:
     providers:
       - amazon
